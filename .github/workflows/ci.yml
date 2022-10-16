@@ -1,6 +1,7 @@
 name: Rust
 
-on: [push, pull_request]
+# Dont wanna run it too much since private repos are limited to 2000 min a month
+on: [pull_request]
 
 env:
   CARGO_TERM_COLOR: always
