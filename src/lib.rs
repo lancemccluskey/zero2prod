@@ -24,7 +24,6 @@ pub fn run(
         .route("/", get(hello_world))
         .route("/health_check", get(|| async {}));
 
-    // let addr = SocketAddr::from(([127, 0, 0, 1], port));
     println!("Listening on {}", listener.local_addr().unwrap());
 
     let server = axum::Server::from_tcp(listener)
