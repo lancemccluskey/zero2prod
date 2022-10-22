@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::net::TcpListener;
 
 use axum::{
     extract::Path,
@@ -16,16 +16,19 @@ async fn hello_world() -> &'static str {
     "Hello World!"
 }
 
-pub fn run() -> Result<Server<AddrIncoming, IntoMakeService<Router>>, std::io::Error> {
+pub fn run(
+    listener: TcpListener,
+) -> Result<Server<AddrIncoming, IntoMakeService<Router>>, std::io::Error> {
     let app = Router::new()
         .route("/:name", get(greet))
         .route("/", get(hello_world))
         .route("/health_check", get(|| async {}));
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    println!("Listening on {}", addr);
+    println!("Listening on {}", listener.local_addr().unwrap());
 
-    let server = axum::Server::bind(&addr).serve(app.into_make_service());
+    let server = axum::Server::from_tcp(listener)
+        .unwrap()
+        .serve(app.into_make_service());
 
     Ok(server)
 }
