@@ -1,5 +1,5 @@
-pub mod routes;
 pub mod configuration;
+pub mod routes;
 pub mod startup;
 
 // async fn greet(Path(name): Path<String>) -> impl IntoResponse {
@@ -9,7 +9,3 @@ pub mod startup;
 // async fn hello_world() -> &'static str {
 //     "Hello World!"
 // }
-
-
-
-
