@@ -1,17 +1,21 @@
-use std::net::TcpListener;
+use std::{net::TcpListener, sync::Arc};
 
 use axum::{
     routing::{get, post, IntoMakeService},
-    Router, Server,
+    Router, RouterService, Server,
 };
 use hyper::server::conn::AddrIncoming;
+use sqlx::PgPool;
 
 use crate::routes::*;
 
 pub fn run(
     listener: TcpListener,
-) -> Result<Server<AddrIncoming, IntoMakeService<Router>>, std::io::Error> {
-    let app = Router::new()
+    connection: PgPool,
+) -> Result<Server<AddrIncoming, IntoMakeService<RouterService>>, std::io::Error> {
+    let connection_state = Arc::new(connection);
+
+    let app = Router::with_state(connection_state)
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe));
 
