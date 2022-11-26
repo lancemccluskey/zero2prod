@@ -1,6 +1,9 @@
 name: Rust
 
-on: [pull_request, push]
+on:
+  push:
+    branches: ["main"]
+  pull_request:
 
 env:
   CARGO_TERM_COLOR: always
@@ -46,6 +49,7 @@ jobs:
         with:
           path: |
             ~/.cargo/bin/sqlx
+            ~/.cargo/bin/cargo-sqlx
           key: ${{ runner.os }}-sqlx-${{ env.SQLX_VERSION }}
 
       - name: Install sqlx-cli
@@ -65,6 +69,10 @@ jobs:
         run: |
           sudo apt-get install libpq-dev -y
           SKIP_DOCKER=true ./scripts/init_db.sh
+
+      - name: Confirm sqlx-data.json is up to date
+        run: |
+          cargo sqlx prepare --check -- --bin zero2prod
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
