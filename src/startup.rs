@@ -2,7 +2,7 @@ use std::{net::TcpListener, sync::Arc};
 
 use axum::{
     routing::{get, post, IntoMakeService},
-    Router, RouterService, Server,
+    Router, Server,
 };
 use http::Request;
 use hyper::{server::conn::AddrIncoming, Body};
@@ -16,7 +16,7 @@ use crate::routes::*;
 pub fn run(
     listener: TcpListener,
     connection: PgPool,
-) -> Result<Server<AddrIncoming, IntoMakeService<RouterService>>, std::io::Error> {
+) -> Result<Server<AddrIncoming, IntoMakeService<Router>>, std::io::Error> {
     let connection_state = Arc::new(connection);
 
     // TODO: Prob move this out at some point
@@ -27,10 +27,11 @@ pub fn run(
         },
     ));
 
-    let app = Router::with_state(connection_state)
+    let app = Router::new()
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
-        .layer(svc);
+        .layer(svc)
+        .with_state(connection_state);
 
     tracing::info!("Listening on {}", listener.local_addr().unwrap());
 
