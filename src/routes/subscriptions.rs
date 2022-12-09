@@ -9,7 +9,10 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::{
+    domain::{NewSubscriber, SubscriberEmail, SubscriberName},
+    startup::AppState,
+};
 
 #[derive(serde::Deserialize)]
 pub struct FormData {
@@ -29,14 +32,14 @@ impl TryFrom<FormData> for NewSubscriber {
 
 #[tracing::instrument(
     name = "Adding a new subscriber",
-    skip(form, pool),
+    skip(form, app_state),
     fields(
         subscriber_email = %form.email,
         subscriber_name = %form.name,
     )
 )]
 pub async fn subscribe(
-    State(pool): State<Arc<PgPool>>,
+    State(app_state): State<Arc<AppState>>,
     Form(form): Form<FormData>,
 ) -> impl IntoResponse {
     let new_subscriber = match form.try_into() {
@@ -44,7 +47,7 @@ pub async fn subscribe(
         Err(_) => return StatusCode::BAD_REQUEST,
     };
 
-    match insert_subscriber(&pool, &new_subscriber).await {
+    match insert_subscriber(&app_state.pool, &new_subscriber).await {
         Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
