@@ -21,6 +21,7 @@ use crate::{
 pub struct AppState {
     pub pool: PgPool,
     pub email_client: EmailClient,
+    pub application_base_url: String,
 }
 
 pub async fn build(
@@ -51,7 +52,12 @@ pub async fn build(
     let listener = TcpListener::bind(address).expect("Failed to bind port");
 
     // Get the server
-    run(listener, connection_pool, email_client)
+    run(
+        listener,
+        connection_pool,
+        email_client,
+        configuration.application.base_url,
+    )
 }
 
 pub fn get_connection_pool(database_settings: &DatabaseSettings) -> PgPool {
@@ -64,9 +70,14 @@ pub fn run(
     listener: TcpListener,
     pool: PgPool,
     email_client: EmailClient,
+    base_url: String,
 ) -> Result<Server<AddrIncoming, IntoMakeService<Router>>, std::io::Error> {
     // Initialize application state
-    let app_state = Arc::new(AppState { pool, email_client });
+    let app_state = Arc::new(AppState {
+        pool,
+        email_client,
+        application_base_url: base_url,
+    });
 
     // Setup tracing for the application
     // Rust yells at me when I don't include the request in the `new_make_span` closure. No idea why
@@ -79,6 +90,7 @@ pub fn run(
     let app = Router::new()
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
+        .route("/subscriptions/confirm", get(confirm))
         .layer(svc)
         .with_state(app_state);
 
