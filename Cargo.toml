@@ -27,6 +27,8 @@ unicode-segmentation = "1.10.0"
 validator = "0.16.0"
 axum = "0.6.1"
 rand = { version = "0.8.5", features = ["std_rng"] }
+thiserror = "1.0.38"
+anyhow = "1.0.68"
 
 [dependencies.sqlx]
 version = "0.6.2"
