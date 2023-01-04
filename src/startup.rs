@@ -91,6 +91,7 @@ pub fn run(
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
         .route("/subscriptions/confirm", get(confirm))
+        .route("/newsletters", post(publish_newsletter))
         .layer(svc)
         .with_state(app_state);
 

@@ -59,5 +59,23 @@
       }
     },
     "query": "SELECT subscriber_id FROM subscription_tokens WHERE subscription_token = $1"
+  },
+  "b669433e818c67ba9e8e0b5f723c43b4cd77576b397eff8ea2df191635fd63fa": {
+    "describe": {
+      "columns": [
+        {
+          "name": "email",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n      SELECT email\n      FROM subscriptions\n      WHERE status = 'confirmed'\n    "
   }
 }
