@@ -105,7 +105,8 @@ pub async fn subscribe(
 
 #[tracing::instrument(
     name = "Store subscription token in the database",
-    skip(subscription_token, transaction)
+    skip(subscription_token, transaction),
+    err(Debug)
 )]
 pub async fn store_token(
     transaction: &mut Transaction<'_, Postgres>,
@@ -136,7 +137,8 @@ impl std::fmt::Debug for StoreTokenError {
 
 #[tracing::instrument(
     name = "Send a confirmation email to a new subscriber",
-    skip(email_client, new_subscriber, application_base_url, subscription_token)
+    skip(email_client, new_subscriber, application_base_url, subscription_token),
+    err(Debug)
 )]
 pub async fn send_confirmation_email(
     email_client: &EmailClient,
