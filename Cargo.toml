@@ -29,6 +29,8 @@ axum = "0.6.1"
 rand = { version = "0.8.5", features = ["std_rng"] }
 thiserror = "1.0.38"
 anyhow = "1.0.68"
+base64 = "0.20.0"
+argon2 = { version = "0.4.1", features = ["std"] }
 
 [dependencies.sqlx]
 version = "0.6.2"
