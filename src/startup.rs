@@ -7,6 +7,7 @@ use axum::{
 use http::Request;
 use hyper::{server::conn::AddrIncoming, Body};
 use reqwest::Url;
+use secrecy::Secret;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
@@ -18,10 +19,14 @@ use crate::{
     routes::*,
 };
 
+#[derive(Clone)]
+pub struct HmacSecret(pub Secret<String>);
+
 pub struct AppState {
     pub pool: PgPool,
     pub email_client: EmailClient,
     pub application_base_url: String,
+    pub hmac_secret: HmacSecret,
 }
 
 pub async fn build(
@@ -57,6 +62,7 @@ pub async fn build(
         connection_pool,
         email_client,
         configuration.application.base_url,
+        HmacSecret(configuration.application.hmac_secret),
     )
 }
 
@@ -71,12 +77,14 @@ pub fn run(
     pool: PgPool,
     email_client: EmailClient,
     base_url: String,
+    hmac_secret: HmacSecret,
 ) -> Result<Server<AddrIncoming, IntoMakeService<Router>>, std::io::Error> {
     // Initialize application state
     let app_state = Arc::new(AppState {
         pool,
         email_client,
         application_base_url: base_url,
+        hmac_secret,
     });
 
     // Setup tracing for the application
@@ -92,6 +100,8 @@ pub fn run(
         .route("/subscriptions", post(subscribe))
         .route("/subscriptions/confirm", get(confirm))
         .route("/newsletters", post(publish_newsletter))
+        .route("/", get(home))
+        .route("/login", get(login_form).post(login))
         .layer(svc)
         .with_state(app_state);
 
