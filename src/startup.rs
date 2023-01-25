@@ -115,9 +115,6 @@ pub fn run(
         },
     ));
 
-    // TODO: Need to test it out
-    // * Issue was I was using Arc<AppState> in all my handlers before
-    // * I should be okay since im still using Arc but its wrapped in a new type
     let app = Router::new()
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
