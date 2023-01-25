@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use anyhow::Context;
 use axum::{
     extract::{Query, State},
@@ -45,7 +43,7 @@ impl IntoResponse for ConfirmError {
     err(Debug)
 )]
 pub async fn confirm(
-    State(app_state): State<Arc<AppState>>,
+    State(app_state): State<AppState>,
     Query(parameters): Query<Parameters>,
 ) -> Result<impl IntoResponse, ConfirmError> {
     let id = get_subscriber_id_from_token(&app_state.pool, &parameters.subscription_token)
