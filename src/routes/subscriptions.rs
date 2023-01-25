@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use anyhow::Context;
 use axum::{
     extract::{Form, State},
@@ -68,7 +66,7 @@ impl IntoResponse for SubscribeError {
     err(Debug),
 )]
 pub async fn subscribe(
-    State(app_state): State<Arc<AppState>>,
+    State(app_state): State<AppState>,
     Form(form): Form<FormData>,
 ) -> Result<impl IntoResponse, SubscribeError> {
     let new_subscriber = form.try_into().map_err(SubscribeError::Validation)?;

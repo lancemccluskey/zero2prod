@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
 use axum::{
     extract::{Form, State},
     http,
-    response::IntoResponse,
+    response::{IntoResponse, Redirect},
 };
-use hmac::{Hmac, Mac};
-use secrecy::{ExposeSecret, Secret};
+use axum_extra::extract::cookie::{Cookie, SignedCookieJar};
+use secrecy::Secret;
 
 use crate::{
     authentication::{validate_credentials, AuthError, Credentials},
@@ -46,12 +44,13 @@ impl IntoResponse for LoginError {
 
 #[tracing::instrument(
   name = "Login",
-  skip(form, app_state),
+  skip(form, app_state, jar),
   fields(username=tracing::field::Empty, user_id=tracing::field::Empty),
   err(Debug)
 )]
 pub async fn login(
-    State(app_state): State<Arc<AppState>>,
+    State(app_state): State<AppState>,
+    jar: SignedCookieJar,
     Form(form): Form<FormData>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
     let credentials = Credentials {
@@ -64,7 +63,7 @@ pub async fn login(
         Ok(user_id) => {
             tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
 
-            Ok((http::StatusCode::SEE_OTHER, [(http::header::LOCATION, "/")]))
+            Ok(Redirect::to("/"))
         }
         Err(e) => {
             let e = match e {
@@ -72,22 +71,9 @@ pub async fn login(
                 AuthError::Unexpected(_) => LoginError::Unexpected(e.into()),
             };
 
-            let query_string = format!("error={}", urlencoding::Encoded::new(e.to_string()));
-
-            let hmac_tag = {
-                let mut mac = Hmac::<sha2::Sha256>::new_from_slice(
-                    app_state.hmac_secret.0.expose_secret().as_bytes(),
-                )
-                .unwrap();
-                mac.update(query_string.as_bytes());
-                mac.finalize().into_bytes()
-            };
             Err((
-                http::StatusCode::SEE_OTHER,
-                [(
-                    http::header::LOCATION,
-                    format!("/login?{query_string}&tag={hmac_tag:x}"),
-                )],
+                jar.add(Cookie::new("_flash", e.to_string())),
+                Redirect::to("/login"),
             ))
         }
     }

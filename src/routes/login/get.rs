@@ -1,58 +1,17 @@
-use std::sync::Arc;
+use axum::response::{Html, IntoResponse};
+use axum_extra::extract::cookie::{Cookie, SignedCookieJar};
 
-use axum::{
-    extract::{Query, State},
-    response::{Html, IntoResponse},
-};
-use hmac::{Hmac, Mac};
-use secrecy::ExposeSecret;
-
-use crate::startup::{AppState, HmacSecret};
-
-#[derive(serde::Deserialize)]
-pub struct QueryParams {
-    error: String,
-    tag: String,
-}
-
-impl QueryParams {
-    fn verify(self, secret: &HmacSecret) -> Result<String, anyhow::Error> {
-        let tag = hex::decode(self.tag)?;
-        let query_string = format!("error={}", urlencoding::Encoded::new(&self.error));
-
-        let mut mac =
-            Hmac::<sha2::Sha256>::new_from_slice(secret.0.expose_secret().as_bytes()).unwrap();
-        mac.update(query_string.as_bytes());
-        mac.verify_slice(&tag)?;
-
-        Ok(self.error)
-    }
-}
-
-#[tracing::instrument(name = "Login form", skip(query, app_state))]
-pub async fn login_form(
-    State(app_state): State<Arc<AppState>>,
-    query: Option<Query<QueryParams>>,
-) -> impl IntoResponse {
-    let error_html = match query {
+#[tracing::instrument(name = "Login form", skip(jar))]
+pub async fn login_form(jar: SignedCookieJar) -> impl IntoResponse {
+    let error_html = match jar.get("_flash") {
         None => "".into(),
-        Some(query) => match query.0.verify(&app_state.hmac_secret) {
-            Ok(error) => {
-                format!("<p><i>{}</i></p>", htmlescape::encode_minimal(&error))
-            }
-            Err(e) => {
-                tracing::warn!(
-                  error.message = %e,
-                  error.cause_chain = ?e,
-                  "Failed to verify query parameters using the HMAC tag"
-                );
-                "".into()
-            }
-        },
+        Some(cookie) => format!("<p><i>{}</i></p>", cookie.value()),
     };
 
-    Html(format!(
-        r#"<!DOCTYPE html>
+    (
+        jar.remove(Cookie::named("_flash")),
+        Html(format!(
+            r#"<!DOCTYPE html>
       <html lang="en">
         <head>
           <meta http-equiv="content-type" content="text/html; charset=utf-8" />
@@ -74,5 +33,6 @@ pub async fn login_form(
         </body>
       </html>
       "#
-    ))
+        )),
+    )
 }

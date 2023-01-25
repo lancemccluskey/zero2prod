@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use anyhow::Context;
 use axum::{
     extract::{Json, State},
@@ -67,7 +65,7 @@ impl IntoResponse for PublishError {
 )]
 pub async fn publish_newsletter(
     headers: header::HeaderMap,
-    State(app_state): State<Arc<AppState>>,
+    State(app_state): State<AppState>,
     Json(body): Json<BodyData>,
 ) -> Result<impl IntoResponse, PublishError> {
     let credentials = basic_authentication(&headers).map_err(PublishError::Auth)?;

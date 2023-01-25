@@ -33,9 +33,7 @@ base64 = "0.20.0"
 argon2 = { version = "0.4.1", features = ["std"] }
 urlencoding = "2.1.2"
 htmlescape = "0.3.1"
-hmac = { version = "0.12.1", features = ["std"] }
-sha2 = "0.10.6"
-hex = "0.4.3"
+axum-extra = { version = "0.4.2", features = ["cookie", "cookie-signed"] }
 
 [dependencies.sqlx]
 version = "0.6.2"
@@ -53,7 +51,7 @@ features = [
 [dependencies.reqwest]
 version = "0.11.12"
 default-features = false
-features = ["json", "rustls-tls"]
+features = ["json", "rustls-tls", "cookies"]
 
 [dev-dependencies]
 claims = "0.7.1"

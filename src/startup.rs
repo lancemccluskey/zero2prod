@@ -1,13 +1,15 @@
-use std::{net::TcpListener, sync::Arc};
+use std::{net::TcpListener, ops::Deref, sync::Arc};
 
 use axum::{
+    extract::FromRef,
     routing::{get, post, IntoMakeService},
     Router, Server,
 };
+use axum_extra::extract::cookie::Key;
 use http::Request;
 use hyper::{server::conn::AddrIncoming, Body};
 use reqwest::Url;
-use secrecy::Secret;
+use secrecy::{ExposeSecret, Secret};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
@@ -22,11 +24,29 @@ use crate::{
 #[derive(Clone)]
 pub struct HmacSecret(pub Secret<String>);
 
-pub struct AppState {
+#[derive(Clone)]
+pub struct AppState(Arc<InnerState>);
+
+impl Deref for AppState {
+    type Target = InnerState;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+pub struct InnerState {
     pub pool: PgPool,
     pub email_client: EmailClient,
     pub application_base_url: String,
-    pub hmac_secret: HmacSecret,
+    pub key: Key,
+}
+
+// this impl tells `SignedCookieJar` how to access the key from our state
+impl FromRef<AppState> for Key {
+    fn from_ref(state: &AppState) -> Self {
+        state.key.clone()
+    }
 }
 
 pub async fn build(
@@ -80,12 +100,12 @@ pub fn run(
     hmac_secret: HmacSecret,
 ) -> Result<Server<AddrIncoming, IntoMakeService<Router>>, std::io::Error> {
     // Initialize application state
-    let app_state = Arc::new(AppState {
+    let app_state = AppState(Arc::new(InnerState {
         pool,
         email_client,
         application_base_url: base_url,
-        hmac_secret,
-    });
+        key: Key::from(hmac_secret.0.expose_secret().as_bytes()),
+    }));
 
     // Setup tracing for the application
     // Rust yells at me when I don't include the request in the `new_make_span` closure. No idea why
@@ -95,6 +115,9 @@ pub fn run(
         },
     ));
 
+    // TODO: Need to test it out
+    // * Issue was I was using Arc<AppState> in all my handlers before
+    // * I should be okay since im still using Arc but its wrapped in a new type
     let app = Router::new()
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))

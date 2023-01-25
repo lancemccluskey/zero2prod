@@ -41,6 +41,8 @@ pub struct ApplicationSettings {
     pub port: u16,
     pub host: String,
     pub base_url: String,
+    /// Must be 64 characters long bc the `Key` for signed
+    /// cookies requires a 64 byte key
     pub hmac_secret: Secret<String>,
 }
 
